@@ -124,11 +124,14 @@
 #define REDIS_CMD_SKIP_MONITOR 2048         /* "M" flag */
 
 /* Object types */
-#define REDIS_STRING 0
-#define REDIS_LIST 1
-#define REDIS_SET 2
-#define REDIS_ZSET 3
-#define REDIS_HASH 4
+
+#define REDIS_LIST 0
+#define REDIS_SET 1
+#define REDIS_ZSET 2
+#define REDIS_HASH 3
+#define REDIS_STRING 4
+/*mine*/ // reordered
+#define REDIS_CRITBIT 5
 
 /* Objects encoding. Some kind of objects like Strings and Hashes can be
  * internally represented in multiple ways. The 'encoding' field of the object
@@ -141,6 +144,8 @@
 #define REDIS_ENCODING_ZIPLIST 5 /* Encoded as ziplist */
 #define REDIS_ENCODING_INTSET 6  /* Encoded as intset */
 #define REDIS_ENCODING_SKIPLIST 7  /* Encoded as skiplist */
+/*mine*/
+#define REDIS_ENCODING_CRITBIT 8
 
 /* Defines related to the dump file format. To store 32 bits lengths for short
  * keys requires a lot of space, so we check the most significant 2 bits of
@@ -331,7 +336,7 @@
 typedef struct redisObject {
     unsigned type:4;
     unsigned notused:2;     /* Not used */
-    unsigned encoding:4;
+    unsigned encoding:6;   /*mine*/
     unsigned lru:22;        /* lru time (relative to server.lruclock) */
     int refcount;
     void *ptr;
@@ -1059,6 +1064,7 @@ robj *createIntsetObject(void);
 robj *createHashObject(void);
 robj *createZsetObject(void);
 robj *createZsetZiplistObject(void);
+robj *createCritbitObject(void); /*mine*/
 int getLongFromObjectOrReply(redisClient *c, robj *o, long *target, const char *msg);
 int checkType(redisClient *c, robj *o, int type);
 int getLongLongFromObjectOrReply(redisClient *c, robj *o, long long *target, const char *msg);
@@ -1390,6 +1396,10 @@ void timeCommand(redisClient *c);
 void bitopCommand(redisClient *c);
 void bitcountCommand(redisClient *c);
 void replconfCommand(redisClient *c);
+/*mine*/
+void cbaddCommand(redisClient *c);
+void cbgetCommand(redisClient *c);
+void cbprefixCommand(redisClient *c);
 
 #if defined(__GNUC__)
 void *calloc(size_t count, size_t size) __attribute__ ((deprecated));

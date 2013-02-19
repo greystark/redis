@@ -31,6 +31,7 @@
 #include "redis.h"
 #include <math.h>
 #include <ctype.h>
+#include "critbit.h"
 
 robj *createObject(int type, void *ptr) {
     robj *o = zmalloc(sizeof(*o));
@@ -109,6 +110,14 @@ robj *createZiplistObject(void) {
     return o;
 }
 
+/*mine*/
+robj *createCritbitObject(void) {
+  strset *s = critbitCreate();
+  robj *o = createObject(REDIS_CRITBIT, s);
+  o->encoding = REDIS_ENCODING_CRITBIT;
+  return o;
+}
+
 robj *createSetObject(void) {
     dict *d = dictCreate(&setDictType,NULL);
     robj *o = createObject(REDIS_SET,d);
@@ -178,6 +187,13 @@ void freeSetObject(robj *o) {
     default:
         redisPanic("Unknown set encoding type");
     }
+}
+
+void freeCritbitObject(robj *o) {
+  if (o->encoding != REDIS_ENCODING_CRITBIT) {
+    redisPanic("unknown critbit encoding type");
+  }
+  strsetRelease((strset*) o->ptr);
 }
 
 void freeZsetObject(robj *o) {

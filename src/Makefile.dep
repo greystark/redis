@@ -48,7 +48,7 @@ notify.o: notify.c redis.h fmacros.h config.h ../deps/lua/src/lua.h \
   ziplist.h intset.h version.h util.h rdb.h rio.h
 object.o: object.c redis.h fmacros.h config.h ../deps/lua/src/lua.h \
   ../deps/lua/src/luaconf.h ae.h sds.h dict.h adlist.h zmalloc.h anet.h \
-  ziplist.h intset.h version.h util.h rdb.h rio.h
+  ziplist.h intset.h version.h util.h rdb.h rio.h critbit.h
 pqsort.o: pqsort.c
 pubsub.o: pubsub.c redis.h fmacros.h config.h ../deps/lua/src/lua.h \
   ../deps/lua/src/luaconf.h ae.h sds.h dict.h adlist.h zmalloc.h anet.h \
@@ -110,7 +110,16 @@ t_string.o: t_string.c redis.h fmacros.h config.h ../deps/lua/src/lua.h \
 t_zset.o: t_zset.c redis.h fmacros.h config.h ../deps/lua/src/lua.h \
   ../deps/lua/src/luaconf.h ae.h sds.h dict.h adlist.h zmalloc.h anet.h \
   ziplist.h intset.h version.h util.h rdb.h rio.h
+# /*mine*/
+t_critbit.o: t_critbit.c critbit.h redis.h fmacros.h config.h ../deps/lua/src/lua.h \
+  ../deps/lua/src/luaconf.h ae.h sds.h dict.h adlist.h zmalloc.h anet.h \
+  ziplist.h intset.h version.h util.h rdb.h rio.h
 util.o: util.c fmacros.h util.h
 ziplist.o: ziplist.c zmalloc.h util.h ziplist.h endianconv.h config.h
 zipmap.o: zipmap.c zmalloc.h endianconv.h config.h
 zmalloc.o: zmalloc.c config.h zmalloc.h
+
+# /*mine*/
+critbit.o: critbit.c critbit.h redis.h fmacros.h config.h ../deps/lua/src/lua.h \
+  ../deps/lua/src/luaconf.h ae.h sds.h dict.h adlist.h zmalloc.h anet.h \
+  ziplist.h intset.h version.h util.h rdb.h rio.h sha1.h crc64.h bio.h

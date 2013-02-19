@@ -1,0 +1,116 @@
+* object.c
+** contains create and free methods for redis Objects from
+   redis datatypes.
+
+* Redis structs - redis.h
+** redisServer
+** redisDb 
+*** dict *dict;                  The keyspace for this DB 
+    dict *expires;              /* Timeout of keys with a timeout set */
+    dict *blocking_keys;        /* Keys with clients waiting for data (BLPOP) */
+    dict *ready_keys;           /* Blocked keys that received a PUSH */
+    dict *watched_keys;         /* WATCHED keys for MULTI/EXEC CAS */
+    int id;
+** redisObject (robj) (object.c has convenience funcs)
+*** unsigned type:4;
+    unsigned notused:2;     /* Not used */
+    unsigned encoding:4;
+    unsigned lru:22;         lru time (relative to server.lruclock) 
+    int refcount;
+    void *ptr;
+** redisClient (has redisDb, etc)
+** sharedObjectsStruct
+*** robj *crlf, *ok, *err, *emptybulk, *czero, *cone, *cnegone, *pong, *space,
+    *colon, *nullbulk, *nullmultibulk, *queued,
+    *emptymultibulk, *wrongtypeerr, *nokeyerr, *syntaxerr, *sameobjecterr,
+    *outofrangeerr, *noscripterr, *loadingerr, *slowscripterr, *bgsaveerr,
+    *masterdownerr, *roslaveerr, *execaborterr, *noautherr,
+    *oomerr, *plus, *messagebulk, *pmessagebulk, *subscribebulk,
+    *unsubscribebulk, *psubscribebulk, *punsubscribebulk, *del, *rpop, *lpop,
+    *lpush,
+    *select[REDIS_SHARED_SELECT_CMDS],
+    *integers[REDIS_SHARED_INTEGERS],
+    *mbulkhdr[REDIS_SHARED_BULKHDR_LEN], /* "*<value>\r\n" */
+    *bulkhdr[REDIS_SHARED_BULKHDR_LEN];  /* "$<value>\r\n" */
+** zskiplistNode
+** zskiplist
+** zset
+** redisOp
+*** robj **argv;
+    int argc, dbid, target;
+    struct redisCommand *cmd;
+** redisCommand
+*** char *name;
+    redisCommandProc *proc;
+    int arity;
+    char *sflags; /* Flags as string representation, one char per flag. */
+    int flags;    /* The actual flags, obtained from the 'sflags' field. */
+    /* Use a function to determine keys arguments in a command line.
+     * Used for Redis Cluster redirect. */
+    redisGetKeysProc *getkeys_proc;
+    /* What keys should be loaded in background when calling this command? */
+    int firstkey; /* The first argument that's a key (0 = no keys) */
+    int lastkey;  /* The last argument that's a key */
+    int keystep;  /* The step between first and last key */
+    long long microseconds, calls;
+** listTypeIterator
+** listTypeEntry
+** setTypeIterator
+** hashTypeIterator
+
+
+* redis.h Extern declarations
+** extern struct redisServer server;
+** extern struct sharedObjectsStruct shared;
+** extern dictType setDictType;
+** extern dictType zsetDictType;
+** extern dictType clusterNodesDictType;
+** extern dictType dbDictType;
+** extern dictType shaScriptObjectDictType;
+** extern double R_Zero, R_PosInf, R_NegInf, R_Nan;
+** extern dictType hashDictType;
+
+* Command call trace
+** networking.c readQueryFromClient
+*** this is an event handler set in createClient(networking.c)
+** networking.c processInputBuffer
+*** parses query, creates robj for redisClient, and sets up argv
+*** makes REDIS_STRING from user query (calls createObject in object.c)
+** redis.c int processCommand(redisClient *c)
+** redis.c call(redisClient) /* Call() is the core of Redis execution of a command */
+*** dispatch using server.commands (which is initialized from readonlyCommandTable)
+
+
+* command common
+** takes in redisClient
+** lookups on client->db (lookupKeyWrite)
+** operates on robj (redisObject)
+*** lobj->type != REDIS_LIST
+*** tryObjectEncoding
+*** dbAdd (db.c)
+*** decrRefCount or incrRefCount (object.c)
+*** make reply
+*** signalModifiedKey (multi.c for clients that have watch set on this key)
+*** notifyKeyspaceEvent (notify.c pubsub)
+*** server.dirty
+
+* Client creation trace
+** networking.c accept(Tcp|Unix)Handler
+** networking.c acceptCommonHandler
+
+
+* sorted set implementation (t_zset.c) zset struct in redis.h
+** zaddGenericCommand 
+**
+
+* misc functions
+** freeMemoryIfNeeded redis.c
+** sigsegvHandler redis.c
+** sigtermHandler redis.c
+** createClient networking.c
+*** aeCreateFileEvent
+
+
+* sds (dynamic strings library)
+** tryObjectEncoding (in object.c, which is called by most commands) looks at this
+

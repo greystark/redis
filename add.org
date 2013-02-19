@@ -1,0 +1,20 @@
+* Trie
+** JudyArray
+*** jmap.c in ccan
+** succint trie
+*** http://code.google.com/p/marisa-trie/
+*** tx-trie
+** HATTrie
+** DAWG
+*** Can't be used as associative array/dict
+** Patricia/radix trie
+*** stringmap.c in ccan
+** Ternary search tree (http://www.drdobbs.com/database/ternary-search-trees/184410528)
+*** Conceptually simpler
+*** O(log n+k) comparisons for search
+*** Can do partial match search (.a.a.a matches banana, casaba, but not abracadabra)
+*** Can do near neighbor searching (hamming distance of string)
+** CritBit
+*** http://github.com/agl/critbit (strset.c in ccan)
+*** Can be used as associative array
+
