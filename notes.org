@@ -70,6 +70,60 @@
 ** extern double R_Zero, R_PosInf, R_NegInf, R_Nan;
 ** extern dictType hashDictType;
 
+
+* redis startup (redis.c main function)
+** set_oom_handler and threadsafety for zmalloc
+** read config (if present) and initial redis global/shared vars in redisServer
+** daemonize if specified
+** redis sentinel mode, if specified
+** aeMain(server.el) (event loop)
+
+* ae (ae.c, ae.h, ae_[epoll|kqueue|evport|select].c)
+** aeEventLoop (state of eventing system) ae.h
+*** typedef struct aeEventLoop {
+    int maxfd;   /* highest file descriptor currently registered */
+    int setsize; /* max number of file descriptors tracked */
+    long long timeEventNextId;
+    time_t lastTime;     /* Used to detect system clock skew */
+    aeFileEvent *events; /* Registered events */
+    aeFiredEvent *fired; /* Fired events */
+    aeTimeEvent *timeEventHead;
+    int stop;
+    void *apidata; /* This is used for polling API specific data */
+    aeBeforeSleepProc *beforesleep;
+} aeEventLoop;
+** aeFileEvent (ae.h)
+** aeTimeEvent
+** aeFiredEvent
+** aeApiState (specific to library, ie. epoll, select, etc) 
+*** pointed to by aeEventLoop->apidata
+
+
+
+
+* client to commandImpl
+
+** aeProcessEvents (ae.c)
+*** Processes events based on flags
+**** AE_ALL_EVENTS, AE_FILE_EVENTS, AE_TIME_EVENTS, AE_DONT_WAIT (process only events that you don't have to wait for)
+**** can OR these
+*** called from
+**** loadAppendOnlyFile (aof.c serve clients from time to time)
+**** rdbLoad (rdb.c) same reason as aof.c
+**** aeMain (ae.c) (this is called in main function of redis.c)
+** aeSearchNearestTimer (ae.c)
+** aeApiPoll (ae.c), (give it a time, and the eventLoop struct)
+*** implemented by kqueue, epoll, select-specific code
+*** returns events that are ready to be processed
+** processTimeEvents (ae.c) or rfileProc/wfileProc
+*** processTimeEvents calls aeTimeEvent->timeProc (which is registered handler by various redis commands)
+*** aeCreateFileEvent (for registering file events to aeEventLoop is called in 
+**** createClient (registers readQueryFromClient, see "Command call trace" below)
+**** prepareClientToWrite (registers sendReplyToClient)
+**** initServer (server.ipfd, server.sofd)
+
+
+
 * Command call trace
 ** networking.c readQueryFromClient
 *** this is an event handler set in createClient(networking.c)
@@ -103,6 +157,8 @@
 ** zaddGenericCommand 
 **
 
+
+
 * misc functions
 ** freeMemoryIfNeeded redis.c
 ** sigsegvHandler redis.c
@@ -113,4 +169,53 @@
 
 * sds (dynamic strings library)
 ** tryObjectEncoding (in object.c, which is called by most commands) looks at this
+
+*** looks like just encodes to long if possible?
+
+
+* AOF appends
+** feedAppendOnlyFile
+*** called by
+**** propagateExpire (for slaves? (db.c))
+**** propagate redis.c
+***** call in redis.c
+**** execCommandReplicateMulti multi.c
+** catAppendOnlyGenericCommand (except for expire commands)
+*** format is *<numArgs>\r\n
+  foreach token (ie. LPUSH key 1, means 6 lines)
+    followed by $<len of token>\r\n
+    followed by command\r\n
+** append to aof buffer (server.aof_buf, this gets flushed before reentering event loop)
+
+
+
+
+* AOF rewrite (multiple points of entry)
+** serverCron
+*** rewriteAppendOnlyFileBackground
+** bgrewriteaofCommand
+*** rewriteAppendOnlyFileBackground
+
+
+
+* rewriteAppendOnlyFileBackground calltrace
+** FORKS
+** rewriteAppendOnlyFile
+
+
+* AOF fsync
+** IMPORTANT! if doesn't write entire file, redis exits and tries to truncate file if partial written
+** 
+
+
+* bio (2 background io job types)
+** AOF fsync
+** close file
+** misc. interesting things
+*** It allocates a stack size while doing pthread.
+*** pthreads spawned by initServer, in main() of redis.c
+*** Block SIGALRM so we are sure that only the main thread will receive watchdog signal
+*** It seems they don't check return codes (ie. when calling syscalls like close, etc)
+
+
 

@@ -62,6 +62,37 @@ void cbgetCommand(redisClient *c) {
   }
 }
 
+void cbdelCommand(redisClient *c) {
+  robj *o;
+  int j, deleted = 0, keyremoved = 0;
+  strset *cb;
+  if ((o = lookupKeyWriteOrReply(c,c->argv[1],shared.czero)) == NULL ||
+        checkType(c,o,REDIS_CRITBIT)) return;
+
+  cb = (strset*)o->ptr;
+  for (j = 2; j < c->argc; j++) {
+    if (strset_del(cb, c->argv[j], (sds) c->argv[j]->ptr)) {
+      deleted++;
+      if (strset_empty(cb)) {
+        dbDelete(c->db,c->argv[1]);
+        keyremoved = 1;
+        break;
+      }
+    }
+  }
+  if (deleted) {
+    //        signalModifiedKey(c->db,c->argv[1]);
+    //        notifyKeyspaceEvent(REDIS_NOTIFY_HASH,"hdel",c->argv[1],c->db->id);
+    /* if (keyremoved) */
+    /*     notifyKeyspaceEvent(REDIS_NOTIFY_GENERIC,"del",c->argv[1], */
+    /*                         c->db->id); */
+    server.dirty += deleted;
+  }
+  addReplyLongLong(c,deleted);
+    
+}
+
+
 bool addPrefix(robj *r, long *limit, void *data) {
   if (*limit <= 0) return false;  
   if (r) {
@@ -112,3 +143,4 @@ void cbprefixCommand(redisClient *c) {
                  addPrefix, &limit, c);
   setDeferredMultiBulkLength(c, replylen, max-limit);  
 }
+

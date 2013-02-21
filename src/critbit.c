@@ -68,9 +68,9 @@ static void _strset_init(struct strset *set) {
 	set->u.n = NULL;
 }
 
-/*static bool _strset_empty(const struct strset *set) {
-	return set->u.n == NULL;
-        }*/
+bool strset_empty(const struct strset *set) {
+  return set->u.n == NULL;
+}
 
 static bool _is_node(struct strset n) {
   /* Anything with first byte 0 is a node. */
@@ -233,8 +233,9 @@ bool strset_add(struct strset *set, robj *value, sds member) {
 	return true;
 }
 
-bool strset_del(struct strset *set, robj value, sds member) {
+bool strset_del(struct strset *set, robj *value, sds member) {
 	size_t len = sdslen(member);
+        int visited = 0;
         char *member_str = sdsstr(member);
 	const u8 *bytes = (const u8 *)member_str;
 	struct strset *parent = NULL, *n;
@@ -242,6 +243,7 @@ bool strset_del(struct strset *set, robj value, sds member) {
 
 	/* Empty set? */
 	if (!set->u.n) {
+          redisLog(REDIS_WARNING, "strset_del empty set");          
           //		errno = ENOENT;
 		return false;
 	}
@@ -250,13 +252,15 @@ bool strset_del(struct strset *set, robj value, sds member) {
 	n = set;
 	/* Anything with first byte 0 is a node. */
 	while (_is_node(*n)) {
+          visited++;
 		u8 c = 0;
 
 		/* Special node which represents the empty string. */
 		if (n->u.n->byte_num == (size_t)-1) {
-                  char *empty_str = sdsstr((sds) n->u.n->child[0].u.s->ptr);
+                  robj *empty_obj = n->u.n->child[0].u.s;
 
 			if (member_str[0]) {
+                          redisLog(REDIS_WARNING, "strset_del  got to empty node with non-empty string %i", visited);                          
                           //				errno = ENOENT;
 				return false;
 			}
@@ -264,7 +268,7 @@ bool strset_del(struct strset *set, robj value, sds member) {
 			/* Sew empty string back so remaining logic works */
 			zfree(n->u.n);
                         // blerg!
-			n->u.s = createObject(REDIS_STRING, (void *) empty_str);
+			n->u.s = empty_obj;
 			break;
 		}
 
@@ -280,6 +284,7 @@ bool strset_del(struct strset *set, robj value, sds member) {
 	/* Did we find it? */
 	if (!streq(member_str, sdsstr((sds) n->u.s->ptr))) {
           //		errno = ENOENT;
+          redisLog(REDIS_WARNING, "strset_del, not string equal");
 		return false;
 	}
 
@@ -294,7 +299,7 @@ bool strset_del(struct strset *set, robj value, sds member) {
 		*parent = old->child[!direction];
 		zfree(old);
 	}
-
+        redisLog(REDIS_WARNING, "strset_del, deleted");
 	return true;
         //return (char *)ret;
 }

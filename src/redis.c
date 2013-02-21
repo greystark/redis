@@ -257,7 +257,8 @@ struct redisCommand redisCommandTable[] = {
     /*mine*/
     {"cbadd",cbaddCommand,-3,"wm",0,NULL,1,1,1,0,0},
     {"cbget",cbgetCommand,3,"rs",0,NULL,1,1,1,0,0},
-    {"cbprefix",cbprefixCommand,-3,"rs",0,NULL,1,1,1,0,0}
+    {"cbprefix",cbprefixCommand,-3,"rs",0,NULL,1,1,1,0,0},
+    {"cbdel",cbdelCommand,-3,"w",0,NULL,1,1,1,0,0}
 };
 
 /*============================ Utility functions ============================ */

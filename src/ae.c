@@ -266,7 +266,7 @@ static int processTimeEvents(aeEventLoop *eventLoop) {
     while(te) {
         long now_sec, now_ms;
         long long id;
-
+        // what is this? /*mine*/ oh, bec. aeEvntLoop might be modified by processing time event
         if (te->id > maxId) {
             te = te->next;
             continue;

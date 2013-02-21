@@ -898,7 +898,9 @@ int rewriteAppendOnlyFile(char *filename) {
                 if (rewriteSortedSetObject(&aof,&key,o) == 0) goto werr;
             } else if (o->type == REDIS_HASH) {
                 if (rewriteHashObject(&aof,&key,o) == 0) goto werr;
-            } else {
+            } else if (o->type == REDIS_CRITBIT) {
+              /*mine*/
+            }else {
                 redisPanic("Unknown object type");
             }
             /* Save the expire time */
